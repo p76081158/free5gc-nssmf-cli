@@ -27,6 +27,28 @@ mkdir $id
 cd $id
 
 #
+# create custom resource yaml
+#
+
+mkdir custom-resource
+
+cat <<EOF > custom-resource/network-slice-cr.yaml
+---
+apiVersion: "nssmf.free5gc.com/v1"
+kind: NetworkSlice
+metadata:
+  name: "$id"
+spec:
+  sst: "$sst"
+  sd: "$sd"
+  n4_cidr: "10.200.$n4_ip.0/24"
+  ue_subnet: "60.60.$bias.0/16"
+  cpu: default
+  memory: default
+  bandwidth: default
+EOF
+
+#
 # create smf yaml
 #
 

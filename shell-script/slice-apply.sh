@@ -23,6 +23,9 @@ else
 fi
 
 cd network-slice/$slice
+# Apply NetworkSlice Custom Resource
+kubectl apply -f custom-resource/
+
 # Apply Subnet
 kubectl apply -f subnet/
 

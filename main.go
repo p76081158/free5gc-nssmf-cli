@@ -71,6 +71,21 @@ func Executor(in string) {
 		}
 		list_reload()
 		return
+	case "remove":
+		if len(blocks) == 1 {
+			return
+		}
+		slice_cmd := "shell-script/slice-recycle.sh " + blocks[1]
+		input_cmd := slice_cmd
+		cmd := exec.Command("/bin/sh", "-c", input_cmd)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Got error: %s\n", err.Error())
+		}
+		list_reload()
+		return
 	case "list":
 		input_cmd := "cd network-slice && ls"
 		out, err := exec.Command("/bin/sh", "-c", input_cmd).Output()
@@ -130,20 +145,6 @@ func Executor(in string) {
 		return	
 	case "status":
 		slice_cmd := "shell-script/slice-status.sh "
-		input_cmd := slice_cmd
-		cmd := exec.Command("/bin/sh", "-c", input_cmd)
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("Got error: %s\n", err.Error())
-		}
-		return
-	case "remove":
-		if len(blocks) == 1 {
-			return
-		}
-		slice_cmd := "shell-script/slice-recycle.sh " + blocks[1]
 		input_cmd := slice_cmd
 		cmd := exec.Command("/bin/sh", "-c", input_cmd)
 		cmd.Stdin = os.Stdin

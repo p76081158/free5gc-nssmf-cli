@@ -6,8 +6,11 @@ then
     exit
 fi
 
-[ -d $1 ] && echo "Network Slice already exists" && exit
-
+if [ -d network-slice/$1 ]
+then
+    echo "Network Slice already exists"
+    exit
+fi
 
 nsi="1"
 sst=${1:2:2}

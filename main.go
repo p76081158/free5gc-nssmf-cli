@@ -12,18 +12,22 @@ import (
 var suggestions = []prompt.Suggest{
 	// Command
 	{Text: "create", Description: "Create Network Slice yaml"},
-	{Text: "list", Description: "List Network Slice"},
+	{Text: "remove", Description: "Romve Network Slice yaml"},
+	{Text: "list", Description: "List Network Slice yaml"},
 	{Text: "apply", Description: "Apply Network Slice to Core Network"},
 	{Text: "delete", Description: "Delete Network Slice from Core Network"},
-	{Text: "remove", Description: "Romve Network Slice yaml"},
+	{Text: "info", Description: "List Network Slice info"},
+	{Text: "status", Description: "List Network Slice status"},
 	{Text: "help", Description: "Command Detail"},
 	{Text: "exit", Description: "Exit free5gc-nssmf-cli"},
 }
 
-var applySuggestions = []prompt.Suggest{}
+var sliceSuggestions = []prompt.Suggest{}
+
+var emptySuggestions = []prompt.Suggest{}
 
 func list_reload() {
-	applySuggestions = []prompt.Suggest{}
+	sliceSuggestions = []prompt.Suggest{}
 	input_cmd := "cd network-slice && ls"
 	out, err := exec.Command("/bin/sh", "-c", input_cmd).Output()
 	slices := strings.Split(string(out), "\n")
@@ -33,11 +37,12 @@ func list_reload() {
 		sd := slice[4:]
 		des := "sst: " + sst + ", sd: " + sd
 		fmt.Println(des)
-		applySuggestions = append(applySuggestions, prompt.Suggest{Text: slices[i], Description: des})
+		sliceSuggestions = append(sliceSuggestions, prompt.Suggest{Text: slices[i], Description: des})
+	}
+	if err != nil {
+		fmt.Printf("Got error: %s\n", err.Error())
 	}
 }
-
-var deleteSuggestions = []prompt.Suggest{}
 
 func Executor(in string) {
 	in = strings.TrimSpace(in)
@@ -52,6 +57,9 @@ func Executor(in string) {
 	blocks := strings.Split(in, " ")
 	switch blocks[0] {
 	case "create":
+		if len(blocks) == 1 {
+			return
+		}
 		slice_cmd := "shell-script/slice-create.sh " + blocks[1]
 		input_cmd := slice_cmd
 		cmd := exec.Command("/bin/sh", "-c", input_cmd)
@@ -73,7 +81,7 @@ func Executor(in string) {
 			sd := slice[4:]
 			des := "sst: " + sst + ", sd: " + sd
 			fmt.Println(des)
-			applySuggestions = append(applySuggestions, prompt.Suggest{Text: slices[i], Description: des})
+			//applySuggestions = append(applySuggestions, prompt.Suggest{Text: slices[i], Description: des})
 		}
 
 		//fmt.Printf(test[1])
@@ -82,6 +90,9 @@ func Executor(in string) {
 		}
 		return
 	case "apply":
+		if len(blocks) == 1 {
+			return
+		}
 		slice_cmd := "shell-script/slice-apply.sh " + blocks[1]
 		input_cmd := slice_cmd
 		cmd := exec.Command("/bin/sh", "-c", input_cmd)
@@ -93,6 +104,9 @@ func Executor(in string) {
 		}
 		return
 	case "delete":
+		if len(blocks) == 1 {
+			return
+		}
 		slice_cmd := "shell-script/slice-delete.sh " + blocks[1]
 		input_cmd := slice_cmd
 		cmd := exec.Command("/bin/sh", "-c", input_cmd)
@@ -103,7 +117,32 @@ func Executor(in string) {
 			fmt.Printf("Got error: %s\n", err.Error())
 		}
 		return
+	case "info":
+		slice_cmd := "shell-script/slice-info.sh "
+		input_cmd := slice_cmd
+		cmd := exec.Command("/bin/sh", "-c", input_cmd)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Got error: %s\n", err.Error())
+		}
+		return	
+	case "status":
+		slice_cmd := "shell-script/slice-status.sh "
+		input_cmd := slice_cmd
+		cmd := exec.Command("/bin/sh", "-c", input_cmd)
+		cmd.Stdin = os.Stdin
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			fmt.Printf("Got error: %s\n", err.Error())
+		}
+		return
 	case "remove":
+		if len(blocks) == 1 {
+			return
+		}
 		slice_cmd := "shell-script/slice-recycle.sh " + blocks[1]
 		input_cmd := slice_cmd
 		cmd := exec.Command("/bin/sh", "-c", input_cmd)
@@ -128,7 +167,6 @@ func Executor(in string) {
 		}
 		//test := strings.Split(string(output), " ")
 		//fmt.Printf(string(output))
-
 		return
 	}
 }
@@ -139,9 +177,12 @@ func Completer(in prompt.Document) []prompt.Suggest {
 	w := in.GetWordBeforeCursor()
 	if len(split) > 1 {
 		v := split[0]
-		if v == "apply" {
-			return prompt.FilterHasPrefix(applySuggestions, w, true)
+		if v == "apply" || v == "remove" {
+			return prompt.FilterHasPrefix(sliceSuggestions, w, true)
 		}
+		if v == "create" || v == "info" || v == "list" || v == "help" || v == "exit" {
+			return prompt.FilterHasPrefix(emptySuggestions, w, true)
+		} 
 	}
 	//if w == "" {
 	//	return []prompt.Suggest{}
@@ -151,6 +192,7 @@ func Completer(in prompt.Document) []prompt.Suggest {
 
 func main() {
 
+	list_reload()
 	p := prompt.New(
 		Executor,
 		Completer,

@@ -26,6 +26,8 @@ var sliceSuggestions = []prompt.Suggest{}
 
 var emptySuggestions = []prompt.Suggest{}
 
+var deployedSliceSuggestions = []prompt.Suggest{}
+
 func list_reload() {
 	sliceSuggestions = []prompt.Suggest{}
 	input_cmd := "cd network-slice && ls"
@@ -36,8 +38,26 @@ func list_reload() {
 		sst := slice[2:4]
 		sd := slice[4:]
 		des := "sst: " + sst + ", sd: " + sd
-		fmt.Println(des)
+		//fmt.Println(des)
 		sliceSuggestions = append(sliceSuggestions, prompt.Suggest{Text: slices[i], Description: des})
+	}
+	if err != nil {
+		fmt.Printf("Got error: %s\n", err.Error())
+	}
+}
+
+func deployed_slice_reload() {
+	deployedSliceSuggestions = []prompt.Suggest{}
+	input_cmd := "shell-script/slice-deployed.sh"
+	out, err := exec.Command("/bin/sh", "-c", input_cmd).Output()
+	slices := strings.Split(string(out), " ")
+	for i := 0; i < len(slices); i++ {
+		slice := slices[i]
+		sst := slice[2:4]
+		sd := slice[4:]
+		des := "sst: " + sst + ", sd: " + sd
+		//fmt.Println(des)
+		deployedSliceSuggestions = append(deployedSliceSuggestions, prompt.Suggest{Text: slices[i], Description: des})
 	}
 	if err != nil {
 		fmt.Printf("Got error: %s\n", err.Error())
@@ -117,6 +137,7 @@ func Executor(in string) {
 		if err := cmd.Run(); err != nil {
 			fmt.Printf("Got error: %s\n", err.Error())
 		}
+		deployed_slice_reload()
 		return
 	case "delete":
 		if len(blocks) == 1 {
@@ -142,7 +163,7 @@ func Executor(in string) {
 		if err := cmd.Run(); err != nil {
 			fmt.Printf("Got error: %s\n", err.Error())
 		}
-		return	
+		return
 	case "status":
 		slice_cmd := "shell-script/slice-status.sh "
 		input_cmd := slice_cmd
@@ -166,6 +187,7 @@ func Executor(in string) {
 		if err := cmd.Run(); err != nil {
 			fmt.Printf("Got error: %s\n", err.Error())
 		}
+		deployed_slice_reload()
 		//test := strings.Split(string(output), " ")
 		//fmt.Printf(string(output))
 		return
@@ -183,7 +205,10 @@ func Completer(in prompt.Document) []prompt.Suggest {
 		}
 		if v == "create" || v == "info" || v == "list" || v == "help" || v == "exit" {
 			return prompt.FilterHasPrefix(emptySuggestions, w, true)
-		} 
+		}
+		if v == "delete" {
+			return prompt.FilterContains(deployedSliceSuggestions, w, true)
+		}
 	}
 	//if w == "" {
 	//	return []prompt.Suggest{}

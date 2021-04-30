@@ -17,6 +17,7 @@ sst=${1:2:2}
 sd=${1:4}
 id="$1"
 bias=$(kubectl get subnets.kubeovn.io | grep -c free5gc-n4)
+ue_ip=$(( 60 + bias ))
 n3_ip=$(( 4 + bias ))
 n4_ip=$(( 101 + bias ))
 
@@ -45,7 +46,7 @@ spec:
   sst: "$sst"
   sd: "$sd"
   n4_cidr: "10.200.$n4_ip.0/24"
-  ue_subnet: "60.60.$bias.0/16"
+  ue_subnet: "60.$ue_ip.0.0/16"
   cpu: default
   memory: default
   bandwidth: default
@@ -88,7 +89,7 @@ configuration:
           dns:
             ipv4: 8.8.8.8
             ipv6: 2001:4860:4860::8888
-          ueSubnet: 60.60.$bias.0/16
+          ueSubnet: 60.$ue_ip.0.0/16
   pfcp:
     addr: 10.200.$n4_ip.20
   userplane_information:
@@ -122,7 +123,7 @@ configuration:
       dns:
         ipv4: 8.8.8.8
         ipv6: 2001:4860:4860::8888
-  ue_subnet: 60.60.$bias.0/16
+  ue_subnet: 60.$ue_ip.0.0/16
   nrfUri: http://free5gc-nrf:8000
   ulcl: false
 
@@ -290,6 +291,9 @@ spec:
     metadata:
       labels:
         app: free5gc-smf-$id
+        nsi: "$nsi"        # Network Slice Instance of three networks (RAN,TN,CN)
+        sst: "$sst"       # Slice/Service Type (1 byte uinteger, range: 0~255)
+        sd: "$sd"    # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
       annotations:
         k8s.v1.cni.cncf.io/networks: free5gc-n4-$id
         free5gc-n4-$id.free5gc.ovn.kubernetes.io/logical_switch: free5gc-n4-$id
@@ -367,7 +371,7 @@ configuration:
 
   dnn_list:
     - dnn: internet
-      cidr: 60.60.$bias.0/16
+      cidr: 60.$ue_ip.0.0/16
       # [optional] apn_list[*].natifname
       # natifname: eth0
 EOF
@@ -459,6 +463,9 @@ spec:
     metadata:
       labels:
         app: free5gc-upf-$id
+        nsi: "$nsi"        # Network Slice Instance of three networks (RAN,TN,CN)
+        sst: "$sst"       # Slice/Service Type (1 byte uinteger, range: 0~255)
+        sd: "$sd"    # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
       annotations:
         k8s.v1.cni.cncf.io/networks: free5gc-n3, free5gc-n4-$id
         free5gc-n3.free5gc.ovn.kubernetes.io/logical_switch: free5gc-n3
@@ -503,7 +510,7 @@ spec:
               sysctl -w net.ipv4.ip_forward=1
               apk update
               apk add iptables
-              iptables -t nat -A POSTROUTING -s 60.60.$bias.0/16 ! -o upfgtp -j MASQUERADE
+              iptables -t nat -A POSTROUTING -s 60.$ue_ip.0.0/16 ! -o upfgtp -j MASQUERADE
               sleep infinity
       dnsPolicy: ClusterFirst
       restartPolicy: Always
@@ -564,3 +571,13 @@ spec:
       "provider": "free5gc-n4-$id.free5gc.ovn"
     }'
 EOF
+
+#
+# create SFC vpn
+#
+
+mkdir vpn
+
+#cat <<EOF > vpn/
+
+#EOF

@@ -30,7 +30,7 @@ var deployedSliceSuggestions = []prompt.Suggest{}
 
 func list_reload() {
 	sliceSuggestions = []prompt.Suggest{}
-	input_cmd := "cd network-slice && ls"
+	input_cmd := "cd network-slice && ls | grep 0x"
 	out, err := exec.Command("/bin/sh", "-c", input_cmd).Output()
 	slices := strings.Split(string(out), "\n")
 	for i := 0; i < len(slices)-1; i++ {
@@ -51,6 +51,9 @@ func deployed_slice_reload() {
 	input_cmd := "shell-script/slice-deployed.sh"
 	out, err := exec.Command("/bin/sh", "-c", input_cmd).Output()
 	slices := strings.Split(string(out), " ")
+	if slices[0] == "\n" {
+		return
+	}
 	for i := 0; i < len(slices); i++ {
 		slice := slices[i]
 		sst := slice[2:4]
@@ -107,7 +110,7 @@ func Executor(in string) {
 		list_reload()
 		return
 	case "list":
-		input_cmd := "cd network-slice && ls"
+		input_cmd := "cd network-slice && ls | grep 0x"
 		out, err := exec.Command("/bin/sh", "-c", input_cmd).Output()
 		slices := strings.Split(string(out), "\n")
 		for i := 0; i < len(slices)-1; i++ {
@@ -152,6 +155,7 @@ func Executor(in string) {
 		if err := cmd.Run(); err != nil {
 			fmt.Printf("Got error: %s\n", err.Error())
 		}
+		deployed_slice_reload()
 		return
 	case "info":
 		slice_cmd := "shell-script/slice-info.sh "
@@ -219,6 +223,7 @@ func Completer(in prompt.Document) []prompt.Suggest {
 func main() {
 
 	list_reload()
+	deployed_slice_reload()
 	p := prompt.New(
 		Executor,
 		Completer,

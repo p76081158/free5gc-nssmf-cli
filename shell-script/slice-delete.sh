@@ -29,6 +29,9 @@ kubectl delete -k upf-$slice/$dir/
 # Delete SMF
 kubectl delete -k smf-$slice/$dir/
 
+# Apply NetworkSlice Custom Resource
+kubectl delete -f custom-resource/
+
 # Delete Subnet
 kubectl delete -f subnet/
 

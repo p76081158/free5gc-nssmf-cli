@@ -6,6 +6,24 @@ then
     exit
 fi
 
+if [ -z "$2" ]
+then
+    echo "Please enter gnb local ip"
+    exit
+fi
+
+if [ -z "$3" ]
+then
+    echo "Please enter gnb n3 ip"
+    exit
+fi
+
+if [ -z "$4" ]
+then
+    echo "Please enter ngci"
+    exit
+fi
+
 if [ -d network-slice/$1 ]
 then
     echo "Network Slice already exists"
@@ -20,7 +38,11 @@ bias=$(kubectl get subnets.kubeovn.io | grep -c free5gc-n4)
 ue_ip=$(( 60 + bias ))
 n3_ip=$(( 4 + bias ))
 n4_ip=$(( 101 + bias ))
-
+gnb_ip="$2"
+gnb_n3_ip="$3"
+ngci="$4"
+#cpu="$5"
+#cpu_limit="$(cpu)m"
 echo "Create Slice"
 echo "nsi:"$nsi
 echo "sst:"$sst
@@ -59,6 +81,7 @@ EOF
 mkdir smf-$id
 mkdir smf-$id/base
 mkdir smf-$id/base/config
+mkdir smf-$id/overlays
 cp -r ../../TLS smf-$id/base
 
 cat <<EOF > smf-$id/base/config/smfcfg-$id.yaml
@@ -96,7 +119,7 @@ configuration:
     up_nodes:
       gNB1:
         type: AN
-        an_ip: 192.168.72.3
+        an_ip: 192.168.72.$gnb_ip
       AnchorUPF1:
         type: UPF
         node_id: 10.200.$n4_ip.101 # the IP/FQDN of N4 interface on this UPF (PFCP)
@@ -109,7 +132,7 @@ configuration:
         interfaces:
           - interfaceType: N3
             endpoints: # the IP address of this N3/N9 interface on this UPF
-              - 10.200.100.$n3_ip
+              - 10.$gnb_n3_ip.100.$n3_ip
             networkInstance: internet
           - interfaceType: N9
             endpoints: # the IP address of this N3/N9 interface on this UPF
@@ -158,7 +181,7 @@ info:
 
 ueRoutingInfo: # the list of UE routing information
   - SUPI: imsi-2089300007487 # Subscription Permanent Identifier of the UE
-    AN: 192.168.72.3 # the IP address of RAN (gNB)
+    AN: 192.168.72.$gnb_ip # the IP address of RAN (gNB)
     PathList: # the pre-config paths for this SUPI
       - DestinationIP: 60.60.0.100 # the destination IP address on Data Network (DN)
         # the order of UPF nodes in this path. We use the UPF's name to represent each UPF node.
@@ -341,6 +364,36 @@ spec:
             name: free5gc-smf-$id-config
 EOF
 
+cat <<EOF > smf-$id/overlays/kustomization.yaml
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../base
+patchesStrategicMerge:
+- smf-$id-cpu.yaml
+EOF
+
+cat <<EOF > smf-$id/overlays/smf-$id-cpu.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: free5gc-smf-$id
+  name: free5gc-smf-$id
+spec:
+  template:
+    spec:
+      containers:
+        - name: free5gc-smf
+          resources:
+            requests:
+              cpu: "250m"
+            limits:
+              cpu: "250m"
+EOF
+
 #
 # create upf yaml
 #
@@ -363,7 +416,7 @@ configuration:
     - addr: 10.200.$n4_ip.101
 
   gtpu:
-    - addr: 10.200.100.$n3_ip
+    - addr: 10.$gnb_n3_ip.100.$n3_ip
     # [optional] gtpu.name
     # - name: upf.5gc.nctu.me
     # [optional] gtpu.ifname
@@ -467,9 +520,9 @@ spec:
         sst: "$sst"       # Slice/Service Type (1 byte uinteger, range: 0~255)
         sd: "$sd"    # Slice Differentiator (3 bytes hex string, range: 000000~FFFFFF)
       annotations:
-        k8s.v1.cni.cncf.io/networks: free5gc-n3, free5gc-n4-$id
-        free5gc-n3.free5gc.ovn.kubernetes.io/logical_switch: free5gc-n3
-        free5gc-n3.free5gc.ovn.kubernetes.io/ip_address: 10.200.100.$n3_ip
+        k8s.v1.cni.cncf.io/networks: free5gc-n3-$ngci, free5gc-n4-$id
+        free5gc-n3-$ngci.free5gc.ovn.kubernetes.io/logical_switch: free5gc-n3-$ngci
+        free5gc-n3-$ngci.free5gc.ovn.kubernetes.io/ip_address: 10.$gnb_n3_ip.100.$n3_ip
         free5gc-n4-$id.free5gc.ovn.kubernetes.io/logical_switch: free5gc-n4-$id
         free5gc-n4-$id.free5gc.ovn.kubernetes.io/ip_address: 10.200.$n4_ip.101
     spec:
@@ -526,6 +579,36 @@ spec:
        #     path: /dev/net/tun
 EOF
 
+cat <<EOF > upf-$id/overlays/kustomization.yaml
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../base
+patchesStrategicMerge:
+- upf-$id-cpu.yaml
+EOF
+
+cat <<EOF > upf-$id/overlays/upf-$id-cpu.yaml
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: free5gc-upf-$id
+  name: free5gc-upf-$id
+spec:
+  template:
+    spec:
+      containers:
+        - name: free5gc-upf
+          resources:
+            requests:
+              cpu: "250m"
+            limits:
+              cpu: "250m"
+EOF
+
 #
 # create n4 subnet yaml
 #
@@ -576,7 +659,7 @@ EOF
 # create SFC vpn
 #
 
-mkdir vpn
+#mkdir vpn
 
 #cat <<EOF > vpn/
 

@@ -32,8 +32,8 @@ func list_reload() {
 	sliceSuggestions = []prompt.Suggest{}
 	input_cmd := "cd network-slice && ls | grep 0x"
 	out, err := exec.Command("/bin/sh", "-c", input_cmd).Output()
-        if string(out) == "" {
-                return
+    if string(out) == "" {
+        return
 	}
 	slices := strings.Split(string(out), "\n")
 	for i := 0; i < len(slices)-1; i++ {
@@ -84,7 +84,7 @@ func Executor(in string) {
 	switch blocks[0] {
 	case "create":
 		if len(blocks) != 5 {
-                        fmt.Printf("Input format: create 0x{sst}{sd} gnb_ip gnb_n3_ip ngci")
+            fmt.Printf("Input format: create 0x{sst}{sd} gnb_ip gnb_n3_ip ngci")
 			return
 		}
         arg := blocks[1] + " " + blocks[2] + " " + blocks[3] + " " + blocks[4]

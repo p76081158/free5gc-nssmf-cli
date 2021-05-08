@@ -19,7 +19,7 @@ if [ "$sfc" = true ]
 then
     dir="overlays/sfc"
 else
-    dir="base"
+    dir="overlays"
 fi
 
 cd network-slice/$slice

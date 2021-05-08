@@ -87,7 +87,7 @@ func Executor(in string) {
                         fmt.Printf("Input format: create 0x{sst}{sd} gnb_ip gnb_n3_ip ngci")
 			return
 		}
-                arg := blocks[1] + " " + blocks[2] + " " + blocks[3] + " " + blocks[4]
+        arg := blocks[1] + " " + blocks[2] + " " + blocks[3] + " " + blocks[4]
 		slice_cmd := "shell-script/slice-create.sh " + arg
 		input_cmd := slice_cmd
 		cmd := exec.Command("/bin/sh", "-c", input_cmd)

@@ -83,10 +83,12 @@ func Executor(in string) {
 	blocks := strings.Split(in, " ")
 	switch blocks[0] {
 	case "create":
-		if len(blocks) == 1 {
+		if len(blocks) != 5 {
+                        fmt.Printf("Input format: create 0x{sst}{sd} gnb_ip gnb_n3_ip ngci")
 			return
 		}
-		slice_cmd := "shell-script/slice-create.sh " + blocks[1]
+                arg := blocks[1] + " " + blocks[2] + " " + blocks[3] + " " + blocks[4]
+		slice_cmd := "shell-script/slice-create.sh " + arg
 		input_cmd := slice_cmd
 		cmd := exec.Command("/bin/sh", "-c", input_cmd)
 		cmd.Stdin = os.Stdin
